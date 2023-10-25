@@ -1,35 +1,36 @@
-import { useState } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useEffect, useState } from "react";
+import { useHistory } from "react-router-dom";
 
-import COLORS from './data/colors.json';
-import VALID_STATUS_CODES from './data/validStatusCodes.json';
+import COLORS from "./data/colors.json";
+import VALID_STATUS_CODES from "./data/validStatusCodes.json";
 
 const Cat = () => {
   const history = useHistory();
   const [colorIdx, setColorIdx] = useState(0);
   const [delayChange, setDelayChange] = useState(5000);
-  const [statusChange, setStatusChange] = useState('418');
-  const [delay, setDelay] = useState('');
-  const [status, setStatus] = useState('');
-
+  const [statusChange, setStatusChange] = useState(
+    localStorage.getItem("catStatus") || "418"
+  );
+  const [delay, setDelay] = useState("");
+  const [status, setStatus] = useState("");
 
   const handleDelaySubmit = (e) => {
     e.preventDefault();
 
     if (delay < 1 || delay > 10) {
-      alert('Please enter a delay from 1 through 10!');
+      alert("Please enter a delay from 1 through 10!");
       return;
     }
 
     setDelayChange(Number(delay) * 1000);
-    setDelay('');
+    setDelay("");
   };
 
   const handleStatusSubmit = (e) => {
     e.preventDefault();
 
-    if (status === '') {
-      alert('Please Enter A Code');
+    if (status === "") {
+      alert("Please Enter A Code");
       setStatusChange(404);
       return;
     }
@@ -43,24 +44,57 @@ const Cat = () => {
     }
 
     setStatusChange(status);
-    setStatus('');
+    setStatus("");
   };
+
+  // 1. Change Background Color
+  useEffect(() => {
+    const colorInterval = setInterval(() => {
+      setColorIdx((prevIdx) => (prevIdx + 1) % COLORS.length);
+    }, delayChange);
+
+    return () => clearInterval(colorInterval);
+  }, [delayChange]);
+
+  // 2. Local Storage
+  useEffect(() => {
+    const savedStatus = localStorage.getItem("catStatus");
+    if (savedStatus) {
+      setStatusChange(savedStatus);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("catStatus", statusChange);
+  }, [statusChange]);
+
+  // 3. Alerts for Invalid HTTP Status Code
+  useEffect(() => {
+    if (statusChange === "") {
+      alert("Please Enter A Code");
+      setStatusChange("404");
+      return;
+    }
+    if (!VALID_STATUS_CODES.includes(Number(statusChange))) {
+      alert(
+        `Code ${statusChange} might exist, but it is not a proper Cat Status code.`
+      );
+      setStatusChange("404");
+    }
+  }, [statusChange]);
 
   return (
     <div
       className="cat-container"
       style={{
         backgroundColor: COLORS[colorIdx],
-        transition: 'background-color 1s',
+        transition: "background-color 1s"
       }}
     >
       <h1>Cat Status</h1>
-      <button onClick={() => history.push('/')}>Home</button>
+      <button onClick={() => history.push("/")}>Home</button>
       <div className="image-container">
-        <img
-          src={`https://http.cat/${statusChange}`}
-          alt="404"
-        />
+        <img src={`https://http.cat/${statusChange}`} alt="404" />
       </div>
       <form onSubmit={handleDelaySubmit}>
         <label htmlFor="dStatus">
@@ -68,7 +102,7 @@ const Cat = () => {
             type="number"
             id="dStatus"
             onChange={(e) => {
-              setDelay(e.target.value)
+              setDelay(e.target.value);
             }}
             placeholder="delay in seconds"
             value={delay}
